@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Three.js Photo Final</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Main container to hold the upload/adjustment sections and canvas */
+        .main-container {
+            display: flex;
+            height: 100vh; /* Full viewport height */
+        }
+
+        /* Left sidebar for upload and adjustment sections */
+        .sidebar {
+            width: 350px; /* Fixed width */
+            padding: 20px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto; /* Allow scrolling if content is too tall */
+        }
+
+        /*Right where the canvas/image will be displayed */
+        .canvas-container {
+            position: relative; /* Important to position the button inside this container */
+            flex-grow: 1; /* Take remaining space */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ececec;
+            padding: 20px;
+        }
+        
+        .canvas-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .capture-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #ff5722; /* Vibrant color for visibility */
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .capture-button:hover {
+            background-color: #e64a19; /* Slightly darker color on hover */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* More pronounced shadow */
+        }
+
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            margin-bottom: 10px;
+        }
+
+        .upload-section label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .upload-section input {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #advanced-options {
+            margin-top: 10px;
+            display: none; /* Initially hidden */
+        }
+
+        .upload-section button {
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .upload-section button:hover {
+            background-color: #218838;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .toggle-container input {
+            margin-right: 10px;
+        }
+
+        .adjustment-section {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            margin-bottom: 20px;
+        }
+        
+        .adjustment-section h3 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        
+        .input-group label {
+            font-weight: bold;
+            margin-right: 10px;
+            width: 100px;
+            color: #333;
+        }
+        
+        .input-group input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .input-group input[type="range"] {
+            flex: 1;
+        }
+        
+        #updateLight {
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        #updateLight:hover {
+            background-color: #0056b3;
+        }
+        
+    </style>
+</head>
+<body>    
+    
+    <div class="main-container">
+        <!-- Sidebar containing upload and adjustment sections -->
+        <div class="sidebar">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <!-- Upload Image Section -->
+                <div>
+                    <label for="imageUpload">Upload Image:</label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+        
+                <!-- Advanced Options Toggle -->
+                <div class="toggle-container">
+                    <input type="checkbox" id="advancedToggle">
+                    <label for="advancedToggle">Show Advanced Options</label>
+                </div>
+        
+                <!-- Advanced Options (hidden by default) -->
+                <div id="advanced-options">
+                    <div>
+                        <label for="normalUpload">Upload Normal Map:</label>
+                        <input type="file" id="normalUpload" accept="image/*">
+                    </div>
+                    <div>
+                        <label for="depthUpload">Upload Depth Map:</label>
+                        <input type="file" id="depthUpload" accept="image/*">
+                    </div>
+                </div>
+        
+                <!-- Update Button -->
+                <button id="update" style="margin: 5px; padding: 10px; border-radius: 10px;">Update Photo</button>
+                <!-- Clear Button -->
+                <button id="clear" style="margin: 5px; padding: 10px; border-radius: 10px;">Clear</button>
+            </div>
+
+            <div class="adjustment-section">
+                <h3>Light and Shadow Adjustments</h3>
+                <div class="adjustment">
+                    <!-- Light Position -->
+                    <div class="input-group">
+                        <label for="lightX">Light X:</label>
+                        <input type="text" id="lightX" placeholder="Light X" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightY">Light Y:</label>
+                        <input type="text" id="lightY" placeholder="Light Y" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightZ">Light Z:</label>
+                        <input type="text" id="lightZ" placeholder="Light Z" value="2">
+                    </div>
+            
+                    <!-- Light Properties -->
+                    <div class="input-group">
+                        <label for="lightIntensity">Intensity:</label>
+                        <input type="text" id="lightIntensity" placeholder="Intensity" value="2">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightDistance">Distance:</label>
+                        <input type="text" id="lightDistance" placeholder="Distance" value="100">
+                    </div>
+                    <div class="input-group">
+                        <label for="ambientLight">Ambient Light:</label>
+                        <input type="text" id="ambientLight" placeholder="Ambient Intensity" value="0.5">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightAngle">Angle:</label>
+                        <input type="text" id="lightAngle" placeholder="Angle" value="0.785">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightPenumbra">Penumbra:</label>
+                        <input type="text" id="lightPenumbra" placeholder="Penumbra" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="lightDecay">Decay:</label>
+                        <input type="text" id="lightDecay" placeholder="Decay" value="2">
+                    </div>
+            
+                    <!-- Shadow Properties -->
+                    <div class="input-group">
+                        <label for="shadowWidth">Shadow Width:</label>
+                        <input type="text" id="shadowWidth" placeholder="Shadow Width" value="4096">
+                    </div>
+                    <div class="input-group">
+                        <label for="shadowHeight">Shadow Height:</label>
+                        <input type="text" id="shadowHeight" placeholder="Shadow Height" value="4096">
+                    </div>
+                    <div class="input-group">
+                        <label for="shadowCamNear">Shadow Cam Near:</label>
+                        <input type="text" id="shadowCamNear" placeholder="Shadow Cam Near" value="0.5">
+                    </div>
+                    <div class="input-group">
+                        <label for="shadowCamFar">Shadow Cam Far:</label>
+                        <input type="text" id="shadowCamFar" placeholder="Shadow Cam Far" value="500">
+                    </div>
+                    <div class="input-group">
+                        <label for="shadowBias">Shadow Bias:</label>
+                        <input type="text" id="shadowBias" placeholder="Shadow Bias" value="-0.0001">
+                    </div>
+            
+                    <!-- Material Properties -->
+                    <div class="input-group">
+                        <label for="metalness">Metalness:</label>
+                        <input type="range" id="metalness" name="metalness" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="roughness">Roughness:</label>
+                        <input type="range" id="roughness" name="roughness" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="input-group">
+                        <label for="displacementScale">Displacement Scale:</label>
+                        <input type="range" id="displacementScale" name="displacementScale" min="0" max="1" step="0.01" value="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label for="alphaTest">Alpha Test:</label>
+                        <input type="range" id="alphaTest" name="alphaTest" min="0" max="1" step="0.01" value="0.05">
+                    </div>
+            
+                    <!-- Update Button -->
+                    <button id="updateLight">Update Light</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right container for canvas -->
+        <div class="canvas-container" style="width: 100%; height: auto;">
+            <!-- Canvas will be dynamically inserted by Three.js -->
+            <button id="capture" class="capture-button">Capture Screenshot</button>
+        </div>
+
+        <!-- Notification Message (initially hidden) -->
+        <div id="screenshotNotification" style="display: none; position: fixed; top: 20px; right: 20px; background-color: #4caf50; color: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
+            Screenshot Taken!
+        </div>
+
+    </div>
+
+
+    <script type="module" src="{{ url_for('static', filename='app01.js') }}"></script>
+
+    <script>
+        // Toggle visibility of the advanced options
+        const advancedToggle = document.getElementById('advancedToggle');
+        const advancedOptions = document.getElementById('advanced-options');
+
+        advancedToggle.addEventListener('change', function () {
+            if (this.checked) {
+                advancedOptions.style.display = 'block';  // Show advanced options
+            } else {
+                advancedOptions.style.display = 'none';   // Hide advanced options
+            }
+        });
+    </script>
+
+</body>
+</html>
